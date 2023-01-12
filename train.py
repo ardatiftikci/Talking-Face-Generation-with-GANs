@@ -76,6 +76,7 @@ d_seq_optimizer = torch.optim.Adam(d_seq.parameters(), lr=1e-5, betas=(0.5, 0.99
 pose_extractor = PoseInfoExtraction()
 mse_loss = torch.nn.MSELoss()
 l1_loss = torch.nn.L1Loss()
+adversarial_loss = torch.nn.BCELoss()
 pbar = tqdm(range(300))
 for epoch in pbar:
     for index, (audio_data, first_image_data, images_data) in enumerate(
@@ -90,7 +91,7 @@ for epoch in pbar:
         real_labels = torch.ones(batch_size * audio_sequence_length).cuda()
         fake_labels = torch.zeros(batch_size * audio_sequence_length).cuda()
 
-        for i in range(1):
+        for _ in range(1):
             # Generate video for discriminators
             fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
 
@@ -99,10 +100,11 @@ for epoch in pbar:
 
             # Frame Discriminator
             outputs = d_frame(images_data, first_image_data).view(-1)
-            d_frame_loss_real = mse_loss(outputs, real_labels)
-
+            d_frame_loss_real = adversarial_loss(outputs, real_labels)
+            # d_frame_loss_real = -torch.mean(outputs)
             outputs = d_frame(fake_video, first_image_data).view(-1)
-            d_frame_loss_fake = mse_loss(outputs, fake_labels)
+            d_frame_loss_fake = adversarial_loss(outputs, fake_labels)
+            # d_frame_loss_fake = torch.mean(outputs)
             d_frame_optimizer.zero_grad()
 
             d_frame_loss = d_frame_loss_real + d_frame_loss_fake
@@ -111,10 +113,12 @@ for epoch in pbar:
 
             # Sequence Discriminator
             outputs = d_seq(images_data, audio_data).view(-1)
-            d_seq_loss_real = mse_loss(outputs, real_labels)
+            d_seq_loss_real = adversarial_loss(outputs, real_labels)
+            # d_seq_loss_real = -torch.mean(outputs)
 
             outputs = d_seq(fake_video, audio_data).view(-1)
-            d_seq_loss_fake = mse_loss(outputs, fake_labels)
+            d_seq_loss_fake = adversarial_loss(outputs, fake_labels)
+            # d_seq_loss_fake = torch.mean(outputs)
             d_seq_optimizer.zero_grad()
 
             d_seq_loss = d_seq_loss_real + d_seq_loss_fake
@@ -134,7 +138,8 @@ for epoch in pbar:
             pose_extraction = pose_extractor(fake_video).view(-1, 62)
             pose_loss = torch.mean(torch.abs(pose_extraction[1:, :] - pose_extraction[:-1, :]))
 
-            g_loss = mse_loss(outputs_frame, real_labels) + mse_loss(outputs_seq, real_labels)
+            g_loss = adversarial_loss(outputs_frame, real_labels) + adversarial_loss(outputs_seq, real_labels) + pose_loss
+            # g_loss = -torch.mean(outputs_frame) - torch.mean(outputs_seq) + pose_loss
             g_optimizer.zero_grad()
             g_loss.backward()
             g_optimizer.step()
@@ -147,7 +152,7 @@ for epoch in pbar:
             f"g_loss: {g_loss.item():.4f}\n"
         )
     )
-    if i % 20 == 19:
+    if epoch % 20 == 19:
         torch.save(video_generator.state_dict(), "./gen2.pt")
         torch.save(d_frame.state_dict(), "./d_frame2.pt")
         torch.save(d_seq.state_dict(), "./d_seq2.pt")
