@@ -29,7 +29,7 @@ class UNetBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, img_size=(128, 128), audio_latent_size=128, identity_latent_size=128, noise_size=10, skip_channels=[]):
+    def __init__(self, img_size=(128, 128), audio_latent_size=128, identity_latent_size=128, noise_size=10):
         super(Generator, self).__init__()
         self.content_encoder = ContentRNN()
         self.id_encoder = IdentityEncoder()
