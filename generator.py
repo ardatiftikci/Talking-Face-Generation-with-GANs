@@ -2,6 +2,9 @@ import numpy as np
 import torch.nn as nn
 import torch
 from utils import repeat_embeddings
+from identity_encoder import IdentityEncoder
+from content_encoder import ContentRNN
+from noise_generator import NoiseGenerator
 
 class UNetBlock(nn.Module):
     def __init__(self, in_channels, out_channels, skip_channels):
@@ -28,8 +31,14 @@ class UNetBlock(nn.Module):
 class Generator(nn.Module):
     def __init__(self, img_size=(128, 128), audio_latent_size=128, identity_latent_size=128, noise_size=10, skip_channels=[]):
         super(Generator, self).__init__()
-        self.img_size = img_size
+        self.content_encoder = ContentRNN()
+        self.id_encoder = IdentityEncoder()
+        self.noise_gen = NoiseGenerator()
 
+        self.skip_channels = list(self.id_encoder.channels)
+        self.skip_channels.reverse()
+
+        self.img_size = img_size
         self.audio_latent_size = audio_latent_size
         self.identity_latent_size = identity_latent_size
         self.noise_size = noise_size
@@ -48,7 +57,7 @@ class Generator(nn.Module):
         self.layers.append(first_layer)
         for i in range(4):
             self.layers.append(
-                UNetBlock(channels, channels // 2, skip_channels[i]))
+                UNetBlock(channels, channels // 2, self.skip_channels[i]))
 
             channels //= 2
             input_size = tuple(2 * x for x in input_size)
@@ -57,7 +66,15 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(channels, 3, 4, stride=2, padding=1, bias=False))
         self.activation = nn.Tanh()
 
-    def forward(self, audio_latent, identity_latent, noise, skip_connections):
+    def forward(self, batch_size, audio_data, first_image_data, audio_sequence_length):
+        audio_latent = self.content_encoder(audio_data)
+        identity_latent, identity_skips = self.id_encoder(first_image_data, skip_connections=True)
+        skip_connections = []
+        for skip_variable in identity_skips:
+            skip_connections.append(skip_variable.cuda())
+        skip_connections.reverse()
+        noise = self.noise_gen(batch_size, audio_sequence_length).cuda()
+
         batch_size = audio_latent.shape[0]
         x = torch.cat([repeat_embeddings(identity_latent, audio_latent.shape[1]).cuda(), audio_latent, noise], dim=2)
         x = x.view(-1, self.total_latent_size, 1, 1)

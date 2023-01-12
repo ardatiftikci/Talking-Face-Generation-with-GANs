@@ -1,15 +1,8 @@
-import numpy as np
 import pynvml
-from PIL import Image
-from pydub import AudioSegment
 import torch
-from torchvision import transforms
-from identity_encoder import IdentityEncoder
-from content_encoder import ContentRNN
 from generator import Generator
-from noise_generator import NoiseGenerator
 from frame_discriminator import FrameDiscriminator
-from utils import repeat_embeddings, cut_sequence
+from utils import cut_sequence
 from torch.utils.data import DataLoader
 from sequence_discriminator import SequenceDiscriminator
 from tqdm import tqdm
@@ -43,25 +36,9 @@ padding = audio_sample_size - stride
 from collections import deque
 
 deq = deque(maxlen=2)
-
 deq.append(get_memory_free_MiB())
-content_encoder = ContentRNN().cuda()
 
-deq.append(get_memory_free_MiB())
-print(f"content encoder {deq[0] - deq[1]} MB")
-id_encoder = IdentityEncoder().cuda()
-
-deq.append(get_memory_free_MiB())
-print(f"identity encoder {deq[0] - deq[1]} MB")
-noise_gen = NoiseGenerator().cuda()
-
-deq.append(get_memory_free_MiB())
-print(f"noise generator {deq[0] - deq[1]} MB")
-
-skip_channels = list(id_encoder.channels)
-skip_channels.reverse()
-
-video_generator = Generator(skip_channels=skip_channels).cuda()
+video_generator = Generator().cuda()
 deq.append(get_memory_free_MiB())
 print(f"generator {deq[0] - deq[1]} MB")
 
@@ -83,35 +60,19 @@ pbar = tqdm(range(300))
 for epoch in pbar:
     for index, (audio_data, first_image_data, images_data) in enumerate(
             zip(audio_loader, first_image_loader, images_loader)):
-        # print("--------------------")
         batch_size = audio_data.shape[0]
 
         audio_data = cut_sequence(audio_data, stride, padding, audio_sample_size).cuda()
-        # deq.append(get_memory_free_MiB())
-        # print(f"audio data {deq[0] - deq[1]} MB")
         audio_sequence_length = audio_data.size()[1]
         first_image_data = first_image_data.cuda()
-        # deq.append(get_memory_free_MiB())
-        # print(f"first image data {deq[0] - deq[1]} MB")
         images_data = images_data.cuda()
-        # deq.append(get_memory_free_MiB())
-        # print(f"video data {deq[0] - deq[1]} MB")
 
         real_labels = torch.ones(batch_size * audio_sequence_length).cuda()
         fake_labels = torch.zeros(batch_size * audio_sequence_length).cuda()
 
         for i in range(1):
             # Generate video for discriminators
-            z = content_encoder(audio_data)
-            identity_latent, identity_skips = id_encoder(first_image_data, skip_connections=True)
-            skip_connections = []
-            for skip_variable in identity_skips:
-                skip_connections.append(skip_variable.cuda())
-            skip_connections.reverse()
-
-            noise = noise_gen(batch_size, audio_sequence_length).cuda()
-
-            fake_video = video_generator(z, identity_latent, noise, skip_connections=skip_connections)
+            fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
 
             # Frame Discriminator
             outputs = d_frame(images_data, first_image_data).view(-1)
@@ -139,17 +100,7 @@ for epoch in pbar:
 
         # Generator Loss
         for _ in range(1):
-            z = content_encoder(audio_data)
-
-            identity_latent, identity_skips = id_encoder(first_image_data, skip_connections=True)
-            skip_connections = []
-            for skip_variable in identity_skips:
-                skip_connections.append(skip_variable.cuda())
-            skip_connections.reverse()
-
-            noise = noise_gen(batch_size, audio_sequence_length).cuda()
-
-            fake_video = video_generator(z, identity_latent, noise, skip_connections=skip_connections)
+            fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
 
             outputs_frame = d_frame(fake_video, first_image_data).view(-1)
             outputs_seq = d_seq(fake_video, audio_data).view(-1)
