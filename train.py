@@ -7,6 +7,12 @@ from torch.utils.data import DataLoader
 from sequence_discriminator import SequenceDiscriminator
 from tqdm import tqdm
 from datasets import AudioDataset, FirstImageDataset, ImagesDataset
+from syncnet import SyncNet_color
+from pose_info_extraction import PoseInfoExtraction
+import numpy as np
+def synergynetLoss(SnetModels,x):
+  model, face_boxes = SnetModels
+
 
 def get_memory_free_MiB():
     pynvml.nvmlInit()
@@ -14,9 +20,20 @@ def get_memory_free_MiB():
     mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
     return mem_info.free // 1024 ** 2
 
+logloss = torch.nn.BCELoss()
+def cosine_loss(a, v, y):
+    d = torch.nn.functional.cosine_similarity(a, v)
+    loss = logloss(d.unsqueeze(1), y)
+    return loss
+def get_sync_loss(syncnet, mel, g):
+    g = g[:, :, g.size(3)//2:,:]
+    g = torch.cat([g for i in range(5)], dim=1)
+    a, v = syncnet(torch.randn((30,1,441, 441)).cuda(), g)
+    y = torch.ones(g.size(0), 1).float().cuda()
+    return cosine_loss(a, v, y)
 
 # data read
-BATCH_SIZE = 16
+BATCH_SIZE = 1
 img_path = "../lrw_subset/ABOUT_{}.jpg"
 imgs_path = "../lrw_subset/ABOUT_{}_{}.jpg"
 audio_path = "../lrw_subset/ABOUT_{}.wav"
@@ -49,13 +66,16 @@ print(f"frame disc {deq[0] - deq[1]} MB")
 d_seq = SequenceDiscriminator().cuda()
 deq.append(get_memory_free_MiB())
 
+print(get_memory_free_MiB())
+#syncnet = SyncNet_color().cuda()
+print(get_memory_free_MiB())
 g_optimizer = torch.optim.Adam(video_generator.parameters(), lr=1e-4, betas=(0.5, 0.999))
 d_frame_optimizer = torch.optim.Adam(d_frame.parameters(), lr=1e-4, betas=(0.5, 0.999))
 d_seq_optimizer = torch.optim.Adam(d_seq.parameters(), lr=1e-5, betas=(0.5, 0.999))
 
+pose_extractor = PoseInfoExtraction()
 mse_loss = torch.nn.MSELoss()
 l1_loss = torch.nn.L1Loss()
-
 pbar = tqdm(range(300))
 for epoch in pbar:
     for index, (audio_data, first_image_data, images_data) in enumerate(
@@ -73,6 +93,9 @@ for epoch in pbar:
         for i in range(1):
             # Generate video for discriminators
             fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
+
+            #x = get_sync_loss(syncnet, audio_data.squeeze(0).unsqueeze(1), fake_video.squeeze(0))
+            #print(x)
 
             # Frame Discriminator
             outputs = d_frame(images_data, first_image_data).view(-1)
@@ -98,6 +121,7 @@ for epoch in pbar:
             d_seq_loss.backward()
             d_seq_optimizer.step()
 
+
         # Generator Loss
         for _ in range(1):
             fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
@@ -105,10 +129,12 @@ for epoch in pbar:
             outputs_frame = d_frame(fake_video, first_image_data).view(-1)
             outputs_seq = d_seq(fake_video, audio_data).view(-1)
 
-            lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, :, 64:])
-            g_loss = mse_loss(outputs_frame, real_labels) + 400. * lower_face_recons_loss + mse_loss(outputs_seq,
-                                                                                                     real_labels)
+            lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, 64:, :])
 
+            pose_extraction = pose_extractor(fake_video).view(-1, 62)
+            pose_loss = torch.mean(torch.abs(pose_extraction[1:, :] - pose_extraction[:-1, :]))
+
+            g_loss = mse_loss(outputs_frame, real_labels) + mse_loss(outputs_seq, real_labels)
             g_optimizer.zero_grad()
             g_loss.backward()
             g_optimizer.step()
@@ -122,6 +148,6 @@ for epoch in pbar:
         )
     )
     if i % 20 == 19:
-        torch.save(video_generator.state_dict(), "./gen.pt")
-        torch.save(d_frame.state_dict(), "./d_frame.pt")
-        torch.save(d_seq.state_dict(), "./d_seq.pt")
+        torch.save(video_generator.state_dict(), "./gen2.pt")
+        torch.save(d_frame.state_dict(), "./d_frame2.pt")
+        torch.save(d_seq.state_dict(), "./d_seq2.pt")
