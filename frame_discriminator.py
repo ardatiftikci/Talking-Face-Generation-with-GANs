@@ -10,7 +10,7 @@ class FrameDiscriminator(nn.Module):
         # 6 layers CNN mentioned in the paper
         for i in range(5):
             in_channels = self.channels[-1] if len(self.channels) > 0 else 6
-            out_channels = 2 * self.channels[-1] if len(self.channels) > 0 else 16
+            out_channels = 2 * self.channels[-1] if len(self.channels) > 0 else 64
             self.layers.append(nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False),
                 nn.BatchNorm2d(out_channels),
