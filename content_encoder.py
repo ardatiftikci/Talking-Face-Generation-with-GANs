@@ -8,31 +8,41 @@ class ContentEncoder(nn.Module):
         super(ContentEncoder, self).__init__()
 
         self.encoding_size = encoding_size
-        self.activations = nn.ModuleList()
-        self.strides = [50, 2, 2, 2, 5, 5]
-        self.kernels = [250, 4, 4, 4, 10, 10]
-        self.paddings = [230, 3, 3, 3, 7]
-        self.layers = nn.ModuleList()
-        self.channels = []
-        for i in range(5):
-            pad = int(math.ceil(self.paddings[i] / 2.0))
-            in_channels = self.channels[-1] if len(self.channels) > 0 else 1
-            out_channels = 2 * self.channels[-1] if len(self.channels) > 0 else 16
+        self.conv1 = nn.Sequential(nn.Conv1d(1, 16, 250,
+                                             stride=50, padding=115),
+                                   nn.BatchNorm1d(16),
+                                   nn.ReLU(inplace=True))
 
-            self.layers.append(nn.Sequential(
-                nn.Conv1d(in_channels, out_channels, self.kernels[i],
-                          stride=self.strides[i], padding=pad),
-                nn.BatchNorm1d(out_channels),
-                nn.ReLU(True)))
-            self.channels.append(out_channels)
+        self.conv2 = nn.Sequential(nn.Conv1d(16, 32, 4,
+                                             stride=2, padding=2),
+                                   nn.BatchNorm1d(32),
+                                   nn.ReLU(inplace=True))
 
-        self.layers.append(nn.Sequential(
-            nn.Conv1d(self.channels[-1], self.encoding_size, 5),
-            nn.Tanh()))
+        self.conv3 = nn.Sequential(nn.Conv1d(32, 64, 4,
+                                             stride=2, padding=2),
+                                   nn.BatchNorm1d(64),
+                                   nn.ReLU(inplace=True))
+
+        self.conv4 = nn.Sequential(nn.Conv1d(64, 128, 4,
+                                             stride=2, padding=2),
+                                   nn.BatchNorm1d(128),
+                                   nn.ReLU(inplace=True))
+
+        self.conv5 = nn.Sequential(nn.Conv1d(128, 256, 10,
+                                             stride=5, padding=4),
+                                   nn.BatchNorm1d(256),
+                                   nn.ReLU(inplace=True))
+
+        self.conv6 = nn.Sequential(nn.Conv1d(256, self.encoding_size, 5),
+                                   nn.Tanh())
 
     def forward(self, x):
-        for i in range(len(self.strides)):
-            x = self.layers[i](x)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.conv6(x)
         return x.squeeze()
 
 

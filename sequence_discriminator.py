@@ -7,50 +7,29 @@ class SequenceDiscriminator(nn.Module):
     def __init__(self):
         super(SequenceDiscriminator, self).__init__()
         self.audio_encoder = ContentRNN()
-        """
-        self.channels = []
-        self.layers = nn.ModuleList()
-        # 6 layers CNN mentioned in the paper
-        for i in range(5):
-            in_channels = self.channels[-1] if len(self.channels) > 0 else 3
-            out_channels = 2 * self.channels[-1] if len(self.channels) > 0 else 16
-            self.layers.append(nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, 4, stride=1, padding=2, bias=False),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True)))
-            self.channels.append(out_channels)
-
-        self.layers.append(nn.Sequential(nn.Conv2d(out_channels, 128, kernel_size=6, stride=1, bias=False),
-                                         nn.BatchNorm2d(128),
-                                         nn.ReLU(inplace=True)))
-
-        self.fc = nn.Linear(320, 1, bias=False)
-        self.Gru = nn.GRU(256, 64, 2, batch_first=True)
-        self.sig = nn.Sigmoid()
-        """
-        self.conv1 = nn.Sequential(nn.Conv2d(3, 64, kernel_size=(4, 4), padding=(1, 1), stride=(2, 2), bias=False),
+        self.conv1 = nn.Sequential(nn.Conv2d(3, 16, kernel_size=4, padding=1, stride=2, bias=False),
+                                   nn.BatchNorm2d(16),
+                                   nn.ReLU(inplace=True)
+                                   )
+        self.conv2 = nn.Sequential(nn.Conv2d(16, 32, kernel_size=4, padding=1, stride=2, bias=False),
+                                   nn.BatchNorm2d(32),
+                                   nn.ReLU(inplace=True)
+                                   )
+        self.conv3 = nn.Sequential(nn.Conv2d(32, 64, kernel_size=4, padding=1, stride=2, bias=False),
                                    nn.BatchNorm2d(64),
-                                   nn.LeakyReLU(0.1, inplace=True)
+                                   nn.ReLU(inplace=True)
                                    )
-        self.conv2 = nn.Sequential(nn.Conv2d(64, 128, kernel_size=(4, 4), padding=(1, 1), stride=(2, 2), bias=False),
+        self.conv4 = nn.Sequential(nn.Conv2d(64, 128, kernel_size=4, padding=1, stride=2, bias=False),
                                    nn.BatchNorm2d(128),
-                                   nn.LeakyReLU(0.1, inplace=True)
+                                   nn.ReLU(inplace=True)
                                    )
-        self.conv3 = nn.Sequential(nn.Conv2d(128, 256, kernel_size=(4, 4), padding=(1, 1), stride=(2, 2), bias=False),
+        self.conv5 = nn.Sequential(nn.Conv2d(128, 256, kernel_size=4, padding=1, stride=2, bias=False),
                                    nn.BatchNorm2d(256),
-                                   nn.LeakyReLU(0.1, inplace=True)
+                                   nn.ReLU(inplace=True)
                                    )
-        self.conv4 = nn.Sequential(nn.Conv2d(256, 512, kernel_size=(4, 4), padding=(1, 1), stride=(2, 2), bias=False),
-                                   nn.BatchNorm2d(512),
-                                   nn.LeakyReLU(0.1, inplace=True)
-                                   )
-        self.conv5 = nn.Sequential(nn.Conv2d(512, 1024, kernel_size=(4, 4), padding=(1, 1), stride=(2, 2), bias=False),
-                                   nn.BatchNorm2d(1024),
-                                   nn.LeakyReLU(0.1, inplace=True)
-                                   )
-        self.conv6 = nn.Sequential(nn.Conv2d(1024, 128, kernel_size=4, stride=1, bias=False),
+        self.conv6 = nn.Sequential(nn.Conv2d(256, 128, kernel_size=4, stride=1, bias=False),
                                    nn.BatchNorm2d(128),
-                                   nn.LeakyReLU(0.1, inplace=True)
+                                   nn.ReLU(inplace=True)
                                    )
         self.gru = nn.GRU(128, 32, 1, batch_first=True)
         self.linear = nn.Linear(160, 1, bias=False)
