@@ -16,7 +16,7 @@ def get_memory_free_MiB():
 
 
 # data read
-BATCH_SIZE =16
+BATCH_SIZE = 16
 img_path = "../lrw_subset/ABOUT_{}.jpg"
 imgs_path = "../lrw_subset/ABOUT_{}_{}.jpg"
 audio_path = "../lrw_subset/ABOUT_{}.wav"
