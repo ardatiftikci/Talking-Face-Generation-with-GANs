@@ -73,10 +73,10 @@ def get_memory_free_MiB():
 
 
 # data read
-BATCH_SIZE = 1
-img_path = "../Talking-Face-Generation/data/LRW/ABOUT/train/ABOUT_{}.jpg"
-imgs_path = "../Talking-Face-Generation/data/LRW/ABOUT/train/ABOUT_{}_{}.jpg"
-audio_path = "../Talking-Face-Generation/data/LRW/ABOUT/train/ABOUT_{}.wav"
+BATCH_SIZE =16
+img_path = "../lrw_subset/ABOUT_{}.jpg"
+imgs_path = "../lrw_subset/ABOUT_{}_{}.jpg"
+audio_path = "../lrw_subset/ABOUT_{}.wav"
 
 audio_dataset = AudioDataset(audio_path)
 audio_loader = DataLoader(audio_dataset, batch_size=BATCH_SIZE, num_workers=0, shuffle=False)
@@ -220,7 +220,7 @@ for epoch in pbar:
             f"g_loss: {g_loss.item():.4f}\n"
         )
     )
-    if i % 20 == 0:
+    if i % 20 == 19:
         torch.save(video_generator.state_dict(), "./gen.pt")
         torch.save(d_frame.state_dict(), "./d_frame.pt")
         torch.save(d_seq.state_dict(), "./d_seq.pt")

@@ -48,6 +48,7 @@ class SequenceDiscriminator(nn.Module):
         x, _ = self.gru(x)
         z = self.audio_encoder(z).squeeze(0)
         x = x.view(x.shape[0], -1)
+        z = z.reshape(-1, z.shape[2])
         x = torch.cat((x, z), dim=1)
         x = x.view(x.shape[0], -1)
         x = self.linear(x)
