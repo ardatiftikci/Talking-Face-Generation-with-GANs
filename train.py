@@ -10,60 +10,10 @@ from generator import Generator
 from noise_generator import NoiseGenerator
 from frame_discriminator import FrameDiscriminator
 from utils import repeat_embeddings, cut_sequence
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from sequence_discriminator import SequenceDiscriminator
 from tqdm import tqdm
-
-
-class AudioDataset(Dataset):
-    def __init__(self, path):
-        self.audio_max_value = 2 ** 15 - 1
-        self.audios = np.array(
-            [np.array(AudioSegment.from_file(path.format(str(i).zfill(5)), 'wav').set_channels(1)
-                      .get_array_of_samples()).astype(np.int16) for i in range(1, 65)])
-
-    def __getitem__(self, index):
-        return torch.FloatTensor(self.audios[index] / self.audio_max_value).unsqueeze(1)
-
-    def __len__(self):
-        return len(self.audios)
-
-
-class FirstImageDatsaet(Dataset):
-    def __init__(self, path):
-        self.img_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.ToTensor(),
-            transforms.Resize((128, 128)),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-        self.first_images = torch.cat(([
-            self.img_transform(np.array(Image.open(path.format(str(i).zfill(5))))).unsqueeze(0) for i in range(1, 65)]),
-            dim=0)
-
-    def __getitem__(self, index):
-        return self.first_images[index]
-
-    def __len__(self):
-        return len(self.first_images)
-
-
-class ImagesDataset(Dataset):
-    def __init__(self, path):
-        self.img_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.ToTensor(),
-            transforms.Resize((128, 128)),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-        self.images = torch.stack([torch.cat(([
-            self.img_transform(np.array(Image.open(path.format(str(i).zfill(5), j)))).unsqueeze(0) for j in range(30)]),
-            dim=0) for i in range(1, 65)], dim=0)
-
-    def __getitem__(self, index):
-        return self.images[index]
-
-    def __len__(self):
-        return len(self.images)
-
+from datasets import AudioDataset, FirstImageDataset, ImagesDataset
 
 def get_memory_free_MiB():
     pynvml.nvmlInit()
@@ -80,7 +30,7 @@ audio_path = "../lrw_subset/ABOUT_{}.wav"
 
 audio_dataset = AudioDataset(audio_path)
 audio_loader = DataLoader(audio_dataset, batch_size=BATCH_SIZE, num_workers=0, shuffle=False)
-first_image_dataset = FirstImageDatsaet(img_path)
+first_image_dataset = FirstImageDataset(img_path)
 first_image_loader = DataLoader(first_image_dataset, batch_size=BATCH_SIZE, num_workers=0, shuffle=False)
 imgs_dataset = ImagesDataset(imgs_path)
 images_loader = DataLoader(imgs_dataset, batch_size=BATCH_SIZE, num_workers=0, shuffle=False)
