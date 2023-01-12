@@ -70,7 +70,7 @@ for epoch in pbar:
         real_labels = torch.ones(batch_size * audio_sequence_length).cuda()
         fake_labels = torch.zeros(batch_size * audio_sequence_length).cuda()
 
-        for i in range(1):
+        for _ in range(1):
             # Generate video for discriminators
             fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
 
@@ -121,7 +121,7 @@ for epoch in pbar:
             f"g_loss: {g_loss.item():.4f}\n"
         )
     )
-    if i % 20 == 19:
+    if epoch % 20 == 19:
         torch.save(video_generator.state_dict(), "./gen.pt")
         torch.save(d_frame.state_dict(), "./d_frame.pt")
         torch.save(d_seq.state_dict(), "./d_seq.pt")

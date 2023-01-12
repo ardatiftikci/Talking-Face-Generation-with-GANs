@@ -44,3 +44,4 @@ for index, (audio_data, first_image_data, images_data) in enumerate(zip(audio_lo
     first_image_data = first_image_data.cuda()
     images_data = images_data.cuda()
     fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
+    print(fake_video.shape)
