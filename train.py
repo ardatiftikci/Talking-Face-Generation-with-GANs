@@ -56,7 +56,7 @@ d_seq_optimizer = torch.optim.Adam(d_seq.parameters(), lr=1e-5, betas=(0.5, 0.99
 mse_loss = torch.nn.MSELoss()
 l1_loss = torch.nn.L1Loss()
 
-pbar = tqdm(range(300))
+pbar = tqdm(range(1000))
 for epoch in pbar:
     for index, (audio_data, first_image_data, images_data) in enumerate(
             zip(audio_loader, first_image_loader, images_loader)):
@@ -104,10 +104,8 @@ for epoch in pbar:
 
             outputs_frame = d_frame(fake_video, first_image_data).view(-1)
             outputs_seq = d_seq(fake_video, audio_data).view(-1)
-
-            lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, :, 64:])
-            g_loss = mse_loss(outputs_frame, real_labels) + 400. * lower_face_recons_loss + mse_loss(outputs_seq,
-                                                                                                     real_labels)
+            lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, 64:, :])
+            g_loss = mse_loss(outputs_frame, real_labels) + mse_loss(outputs_seq, real_labels) + 100*lower_face_recons_loss
 
             g_optimizer.zero_grad()
             g_loss.backward()
@@ -122,6 +120,6 @@ for epoch in pbar:
         )
     )
     if epoch % 20 == 19:
-        torch.save(video_generator.state_dict(), "./gen.pt")
-        torch.save(d_frame.state_dict(), "./d_frame.pt")
-        torch.save(d_seq.state_dict(), "./d_seq.pt")
+        torch.save(video_generator.state_dict(), "./gen_exp3.pt")
+        #torch.save(d_frame.state_dict(), "./d_frame4.pt")
+        #torch.save(d_seq.state_dict(), "./d_seq4.pt")
