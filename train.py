@@ -178,6 +178,8 @@ for epoch in pbar:
 
             outputs_frame = d_frame(fake_video, first_image_data).view(-1)
             outputs_seq = d_seq(fake_video, audio_data).view(-1)
+            center = random.randint(2, 28)
+            outputs_sync = d_sync(fake_video[:, center-2:center+3, :, 64:, :], audio_data[:, center]).view(-1)
 
             lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, 64:, :])
 
@@ -185,7 +187,7 @@ for epoch in pbar:
             pose_loss = torch.mean(torch.abs(pose_extraction[1:, :] - pose_extraction[:-1, :]))
 
             g_loss = adversarial_loss(outputs_frame, real_labels) + adversarial_loss(outputs_seq,
-                                                                                     real_labels) + pose_loss
+                                                                                     real_labels) + adversarial_loss(outputs_sync, real_label) + pose_loss
             # g_loss = -torch.mean(outputs_frame) - torch.mean(outputs_seq) + pose_loss
             g_optimizer.zero_grad()
             g_loss.backward()
