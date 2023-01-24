@@ -1,3 +1,5 @@
+# DISCLAIMER: Directly taken from "A Lip Sync Expert Is All You Need for Speech to Lip Generation In the Wild"
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -70,9 +72,7 @@ class SyncNet_color(nn.Module):
 
     def forward(self, audio_sequences, face_sequences):  # audio_sequences := (B, dim, T)
         face_embedding = self.face_encoder(face_sequences)
-        print(face_embedding.shape)
         audio_embedding = self.audio_encoder(audio_sequences)
-        print(audio_embedding.shape)
 
         audio_embedding = audio_embedding.view(audio_embedding.size(0), -1)
         face_embedding = face_embedding.view(face_embedding.size(0), -1)

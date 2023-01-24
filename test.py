@@ -19,7 +19,7 @@ from datasets import AudioDataset, FirstImageDataset, ImagesDataset
 
 def save_video(index, video, audio):
     # torchvision.io.write_video(f"results/video{index}.mp4", video, fps=25, audio_array=audio, audio_fps=44100, audio_codec='mp3')
-    torchvision.io.write_video(f"results/video{index}.mp4", video, fps=25)
+    torchvision.io.write_video(f"results_{exp_name}/video{index}.mp4", video, fps=25)
 
 
 def save_image(index, frame):
@@ -45,8 +45,9 @@ audio_sample_size = 8820
 stride = int(44100 / float(25))
 padding = audio_sample_size - stride
 
+exp_name = "exp5"
 video_generator = Generator()
-video_generator.load_state_dict(torch.load("./gen.pt"))
+video_generator.load_state_dict(torch.load(f"./gen_{exp_name}.pt"))
 video_generator = video_generator.cuda()
 
 

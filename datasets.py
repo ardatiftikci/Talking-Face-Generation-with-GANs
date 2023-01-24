@@ -4,7 +4,7 @@ from pydub import AudioSegment
 import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
-
+import audio
 class AudioDataset(Dataset):
     def __init__(self, path):
         self.audio_max_value = 2 ** 15 - 1
@@ -13,7 +13,8 @@ class AudioDataset(Dataset):
                       .get_array_of_samples()).astype(np.int16) for i in range(1, 65)])
 
     def __getitem__(self, index):
-        return torch.FloatTensor(self.audios[index] / self.audio_max_value).unsqueeze(1)
+        audio_data = torch.FloatTensor(self.audios[index] / self.audio_max_value).unsqueeze(1)
+        return audio_data, torch.FloatTensor(audio.melspectrogram(audio_data)).squeeze(2).unsqueeze(0)
 
     def __len__(self):
         return len(self.audios)
