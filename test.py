@@ -49,6 +49,7 @@ video_generator = Generator()
 video_generator.load_state_dict(torch.load("./gen.pt"))
 video_generator = video_generator.cuda()
 
+
 for index, (audio_data, first_image_data, images_data) in enumerate(
         zip(audio_loader, first_image_loader, images_loader)):
     batch_size = audio_data.shape[0]

@@ -1,0 +1,6 @@
+*.pth
+*.pt
+results/
+SynergyNet/3dmm_data
+SynergyNet/aflw2000_data
+SynergyNet/pretrained
