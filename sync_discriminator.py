@@ -84,7 +84,7 @@ class SyncDiscriminator(nn.Module):
         z = self.audio_linear(z).unsqueeze(1)
         audio_out, self.audio_hidden = self.audio_bilstm(z)
         audio_out = audio_out.squeeze(1)
-        dist = torch.cdist(image_out, audio_out)
+        dist = torch.diagonal(torch.cdist(image_out, audio_out)).view(-1, 1)
         out = self.slp(dist)
 
         self.audio_hidden = (self.audio_hidden[0].detach(), self.audio_hidden[1].detach())

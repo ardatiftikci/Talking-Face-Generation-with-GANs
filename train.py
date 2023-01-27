@@ -47,7 +47,7 @@ def get_sync_loss(syncnet, mel, g):
 # next comment
 
 # data read
-BATCH_SIZE = 1
+BATCH_SIZE = 4
 img_path = "../lrw_subset/ABOUT_{}.jpg"
 imgs_path = "../lrw_subset/ABOUT_{}_{}.jpg"
 audio_path = "../lrw_subset/ABOUT_{}.wav"
@@ -103,14 +103,9 @@ pose_extractor = PoseInfoExtraction()
 mse_loss = torch.nn.MSELoss()
 l1_loss = torch.nn.L1Loss()
 adversarial_loss = torch.nn.BCELoss()
-<<<<<<< HEAD
-pbar = tqdm(range(1000))
-=======
 
-print(get_memory_free_MiB())
+pbar = tqdm(range(500))
 
-pbar = tqdm(range(300))
->>>>>>> 0b01ed81ea815bca344c54ce9b4213331f3ccf8d
 for epoch in pbar:
     for index, ((audio_data, mel_data), first_image_data, images_data) in enumerate(
             zip(audio_loader, first_image_loader, images_loader)):
@@ -134,11 +129,11 @@ for epoch in pbar:
             print(get_memory_free_MiB())
             # Frame Discriminator
             outputs = d_frame(images_data, first_image_data).view(-1)
-            d_frame_loss_real = adversarial_loss(outputs, real_labels)
-            # d_frame_loss_real = -torch.mean(outputs)
+            #d_frame_loss_real = adversarial_loss(outputs, real_labels)
+            d_frame_loss_real = -torch.mean(outputs)
             outputs = d_frame(fake_video, first_image_data).view(-1)
-            d_frame_loss_fake = adversarial_loss(outputs, fake_labels)
-            # d_frame_loss_fake = torch.mean(outputs)
+            #d_frame_loss_fake = adversarial_loss(outputs, fake_labels)
+            d_frame_loss_fake = torch.mean(outputs)
             d_frame_optimizer.zero_grad()
             d_frame_loss = d_frame_loss_real + d_frame_loss_fake
             d_frame_loss.backward(retain_graph=True)
@@ -147,12 +142,12 @@ for epoch in pbar:
 
             # Sequence Discriminator
             outputs = d_seq(images_data, audio_data).view(-1)
-            d_seq_loss_real = adversarial_loss(outputs, real_labels)
-            # d_seq_loss_real = -torch.mean(outputs)
+            #d_seq_loss_real = adversarial_loss(outputs, real_labels)
+            d_seq_loss_real = -torch.mean(outputs)
 
             outputs = d_seq(fake_video, audio_data).view(-1)
-            d_seq_loss_fake = adversarial_loss(outputs, fake_labels)
-            # d_seq_loss_fake = torch.mean(outputs)
+            #d_seq_loss_fake = adversarial_loss(outputs, fake_labels)
+            d_seq_loss_fake = torch.mean(outputs)
             d_seq_optimizer.zero_grad()
 
             print(get_memory_free_MiB())
@@ -167,22 +162,22 @@ for epoch in pbar:
             # create in sync pair
             center = random.randint(2, 27)
             outputs = d_sync(mouth_data[:, center-2:center+3], audio_data[:, center]).view(-1)
-            d_sync_loss_real = adversarial_loss(outputs, real_label)
-            # d_sync_loss_real = -torch.mean(outputs)
+            #d_sync_loss_real = adversarial_loss(outputs, real_label)
+            d_sync_loss_real = -torch.mean(outputs)
 
             # create out of sync pair
             center_fake = random.randint(2, 27)
             while center_fake != center:
                 center_fake = random.randint(2, 27)
             outputs = d_sync(mouth_data[:, center_fake-2:center_fake+3], audio_data[:, center]).view(-1)
-            d_sync_loss_fake1 = 0.5 * adversarial_loss(outputs, fake_label)
-            # d_sync_loss_fake1 = 0.5 * torch.mean(outputs)
+            #d_sync_loss_fake1 = 0.5 * adversarial_loss(outputs, fake_label)
+            d_sync_loss_fake1 = 0.5 * torch.mean(outputs)
 
             print(get_memory_free_MiB())
 
             outputs = d_sync(fake_video[:, center-2:center+3, :, 64:, :], audio_data[:, center]).view(-1)
-            d_sync_loss_fake2 = 0.5 * adversarial_loss(outputs, fake_label)
-            # d_sync_loss_fake2 = 0.5 * torch.mean(outputs)
+            #d_sync_loss_fake2 = 0.5 * adversarial_loss(outputs, fake_label)
+            d_sync_loss_fake2 = 0.5 * torch.mean(outputs)
             d_sync_optimizer.zero_grad()
 
             d_sync_loss = d_sync_loss_real + d_sync_loss_fake1 + d_sync_loss_fake2
@@ -191,38 +186,31 @@ for epoch in pbar:
             # sync_loss = get_sync_loss(syncnet, mel_data, fake_video.squeeze(0))
         # Generator Loss
         for _ in range(1):
-            print("bbbbbbb")
             print(get_memory_free_MiB())
             fake_video = video_generator(batch_size, audio_data, first_image_data, audio_sequence_length)
             print(get_memory_free_MiB())
             outputs_frame = d_frame(fake_video, first_image_data).view(-1)
             outputs_seq = d_seq(fake_video, audio_data).view(-1)
-<<<<<<< HEAD
-            lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, 64:, :])
-
-            #pose_extraction = pose_extractor(fake_video).view(-1, 62)
-            #pose_loss = torch.mean(torch.abs(pose_extraction[1:, :] - pose_extraction[:-1, :]))
-
-            g_loss = adversarial_loss(outputs_frame, real_labels) + adversarial_loss(outputs_seq, real_labels)
-            # g_loss = -torch.mean(outputs_frame) - torch.mean(outputs_seq) + pose_loss
-=======
             center = random.randint(2, 27)
             outputs_sync = d_sync(fake_video[:, center-2:center+3, :, 64:, :], audio_data[:, center]).view(-1)
 
             lower_face_recons_loss = torch.mean(torch.abs(fake_video - images_data)[:, :, :, 64:, :])
             print(get_memory_free_MiB())
-            print("-------")
             pose_extraction = pose_extractor(fake_video).view(-1, 62)
             pose_loss = torch.mean(torch.abs(pose_extraction[1:, :] - pose_extraction[:-1, :]))
 
             print(get_memory_free_MiB())
-
-            aclp_loss = torch.mean(aclp_encoder(fake_video, audio_data))
-            print(get_memory_free_MiB())
-            g_loss = adversarial_loss(outputs_frame, real_labels) + adversarial_loss(outputs_seq,
-                                                                                     real_labels) + adversarial_loss(outputs_sync, real_label) + pose_loss + aclp_loss
-            # g_loss = -torch.mean(outputs_frame) - torch.mean(outputs_seq) - torch.mean(outputs_sync) + pose_loss + aclp_loss
->>>>>>> 0b01ed81ea815bca344c54ce9b4213331f3ccf8d
+            rand_samples = random.sample(range(30),5)
+            aclp_loss = torch.mean(aclp_encoder(fake_video[:, rand_samples], audio_data[:, rand_samples]))
+            #g_loss = 0.25*adversarial_loss(outputs_frame, real_labels) + adversarial_loss(outputs_seq, real_labels) + 3*adversarial_loss(outputs_sync, real_label) + aclp_loss + 100*lower_face_recons_loss
+            #g_loss = adversarial_loss(outputs_frame, real_labels) + adversarial_loss(outputs_seq, real_labels) + adversarial_loss(outputs_sync, real_label)+ 100*lower_face_recons_loss
+            g_loss = -0.25*torch.mean(outputs_frame) - torch.mean(outputs_seq) -3*torch.mean(outputs_sync) +aclp_loss + 100*lower_face_recons_loss
+            print(adversarial_loss(outputs_frame, real_labels))
+            print(adversarial_loss(outputs_seq, real_labels))
+            print(adversarial_loss(outputs_sync, real_label))
+            print(pose_loss)
+            print(aclp_loss)
+            print(lower_face_recons_loss)
             g_optimizer.zero_grad()
             g_loss.backward()
             g_optimizer.step()
@@ -237,6 +225,6 @@ for epoch in pbar:
         )
     )
     if epoch % 20 == 19:
-        torch.save(video_generator.state_dict(), "./gen_exp1.pt")
+        torch.save(video_generator.state_dict(), "./gen_exp12.pt")
         #torch.save(d_frame.state_dict(), "./d_frame4.pt")
         #torch.save(d_seq.state_dict(), "./d_seq4.pt")
