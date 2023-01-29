@@ -18,3 +18,5 @@ Experiments:
 - Experiment 12: All Discriminators + Emotion Loss + Reconstruction Loss + Wasserstein GAN Loss
 - Experiment 13: All Discriminators + Pose Information Loss + Emotion Loss + Wasserstein GAN Loss
 - Experiment 14: Full Model + Wasserstein GAN Loss
+
+![Experimental Results](experimental_results.png?raw=true "Results")
